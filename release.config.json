@@ -1,0 +1,21 @@
+{
+  "_comment": "Configuracion unica del canal de distribucion. Editar SOLO esto (o usar tools/configure.py) — los scripts leen de aca.",
+  "addon_id": "floorp-system@fsys.system",
+  "channel": "unlisted",
+  "_pages_base_url": "URL publica HTTPS de GitHub Pages, SIN barra final. Ej: https://TU-USUARIO.github.io/floorp-system . Vacio = canal todavia no configurado (el build NO inyecta update_url y validate falla en modo release).",
+  "pages_base_url": "",
+  "_repo": "owner/nombre del repositorio en GitHub. Vacio = todavia no creado.",
+  "repo": "",
+  "_permissions_baseline": "Permisos aceptados. Si el manifest pide MAS que esto, validate.py falla: evita elevar permisos sin darse cuenta.",
+  "permissions_baseline": [
+    "tabs",
+    "storage",
+    "notifications",
+    "downloads"
+  ],
+  "host_permissions_baseline": [
+    "http://127.0.0.1/*"
+  ],
+  "strict_min_version": "115.0",
+  "manifest_version": 2
+}

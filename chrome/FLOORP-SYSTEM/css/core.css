@@ -1,0 +1,631 @@
+/* ============================================================
+   FLOORP SYSTEM INITIALIZED — core.css
+   Filosofía: superficies planas, hairlines sutiles para la
+   estructura, bordes de acento SOLO para estados. Cero gradien-
+   tes, cero glow, cero border-radius (estética window manager).
+   Vistas controladas por body[data-view] (nunca pisar [hidden]).
+   ============================================================ */
+
+:root {
+  /* Superficies */
+  --bg:      #050706;
+  --surface: #0a110d;
+  --raised:  #0d1712;
+  /* Líneas: hairline estructural vs borde de acento (estados) */
+  --line:    #152219;
+  --border:  #1f633b;
+  /* Verdes */
+  --accent:     #63ff9b;
+  --accent-dim: #2f8f57;
+  --dim:        #4a7a5e;
+  --dimmer:     #2e4a3a;
+  /* Texto y errores */
+  --text: #c8e6d4;
+  --err:  #ff5f56;
+  --mono: "Cascadia Mono", "JetBrains Mono", "Fira Code", Consolas, "Courier New", monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { background: var(--bg); } /* mata el flash blanco previo al CSS */
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Scrollbars: discretas en Firefox (nativo) y Chromium ---- */
+* { scrollbar-width: thin; scrollbar-color: var(--dimmer) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--dimmer); }
+::-webkit-scrollbar-thumb:hover { background: var(--dim); }
+
+/* ---- Selección y foco (keyboard-first: el foco se ve solo
+       cuando se navega con teclado) ---- */
+::selection { background: var(--accent); color: #04120a; }
+:focus { outline: none; }
+:focus-visible { outline: 1px solid var(--border); outline-offset: 2px; }
+
+/* ============ VISTAS: el body declara cuál está activa ============ */
+body[data-view="boot"] #home { display: none; }
+body[data-view="home"] #boot { display: none; }
+
+#statusbar, #workspacebar, #screen { flex: none; }
+#screen {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+#boot, #home {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============ STATUS BAR ============ */
+#statusbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 30px;
+  padding: 0 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  letter-spacing: 0.8px;
+}
+#sb-workspace {
+  color: var(--accent);
+  border-left: 3px solid var(--accent);   /* chip estilo módulo de bar */
+  padding-left: 10px;
+}
+#sb-wsmode {
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  color: var(--dim);
+  border-left: 3px solid var(--dimmer);   /* inactivo: SESIONES */
+  padding-left: 10px;
+}
+#sb-wsmode.native {
+  color: var(--accent);
+  border-left-color: var(--accent);       /* activo: workspaces reales */
+}
+.sb-right { display: flex; align-items: center; color: var(--dim); }
+.sb-right > span { padding: 0 12px; border-left: 1px solid var(--line); white-space: nowrap; }
+#sb-workspace, #sb-wsmode { white-space: nowrap; }
+.sb-right > span:first-child { border-left: 0; }
+#sb-state.ok  { color: var(--accent); }
+#sb-state.bad { color: var(--err); }
+
+/* ============ WORKSPACE BAR ============ */
+#workspacebar {
+  display: flex;
+  gap: 1px;
+  background: var(--line);            /* hairline entre tiles */
+  border-bottom: 1px solid var(--line);
+  height: 32px;
+  flex: none;
+}
+#workspacebar .ws {
+  padding: 0 18px;
+  background: var(--bg);
+  border: none;
+  color: var(--dim);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  white-space: nowrap;      /* el tile nunca parte en dos líneas */
+  transition: color 0.12s, background 0.12s;
+}
+#workspacebar .ws:hover { color: var(--text); background: var(--raised); }
+#workspacebar .ws.active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: inset 0 2px 0 var(--accent);
+}
+
+/* ============ BOOT ============ */
+#boot { padding: 56px; justify-content: center; }
+.boot-title {
+  font-size: 22px;
+  letter-spacing: 4px;
+  color: var(--accent);
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+.boot-title em { font-style: normal; color: var(--text); }
+#boot-lines { color: var(--dim); font-size: 13px; line-height: 1.75; }
+#boot-lines div { animation: bootIn 0.16s ease-out; }
+#boot-lines div::before { content: "> "; color: var(--dimmer); }
+#boot-ok {
+  color: var(--accent);
+  margin-top: 20px;
+  letter-spacing: 2px;
+  opacity: 0;
+  transition: opacity 0.18s ease-out;
+}
+#boot-ok.on { opacity: 1; }
+@keyframes bootIn {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ============ HOME ============ */
+#hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+#hero-title {
+  font-size: clamp(26px, 4vw, 38px);
+  letter-spacing: 8px;
+  color: var(--accent);
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* Corchetes HUD: marco técnico, no decoración */
+#hero-title::before { content: "["; margin-right: 16px; color: var(--dimmer); letter-spacing: 0; font-weight: normal; }
+#hero-title::after  { content: "]"; margin-left: 16px; color: var(--dimmer); letter-spacing: 0; font-weight: normal; }
+#hero-sub { font-size: 15px; letter-spacing: 12px; color: var(--dim); margin-top: 8px; text-indent: 12px; }
+#syschecks {
+  list-style: none;
+  margin-top: 30px;
+  min-width: 360px;
+  font-size: 12px;
+}
+#syschecks li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  color: var(--dim);
+  line-height: 2.1;
+}
+/* Dot leaders reales: la línea punteada estira sola entre label y estado */
+#syschecks .leader {
+  flex: 1;
+  min-width: 24px;
+  align-self: center;
+  height: 1px;
+  border-bottom: 1px dotted var(--dimmer);
+}
+#syschecks b { font-weight: normal; color: var(--accent); letter-spacing: 1px; }
+#focus-hint {
+  margin-top: 26px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--dimmer);
+  text-align: center;
+  padding: 0 24px;
+}
+
+/* Recordatorio fijado (pin) en la status bar */
+#sb-pin { color: var(--accent); }
+#sb-pin:empty { display: none; }
+
+/* ============================================================
+   TILING v1 (BOOT 13): terminal + panel de contenido lado a lado.
+   body[data-pane=split] activa el grid; el panel es un tile más del
+   mismo lenguaje visual (hairline, borde de acento al foco).
+   ============================================================ */
+body[data-pane="split"] #home {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 12px;
+  padding: 0 12px 12px;
+}
+body[data-pane="split"] #hero { display: none; }
+body[data-pane="split"] #terminal {
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  grid-column: 1;
+  grid-row: 1;
+}
+#pane {
+  display: none;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+body[data-pane="split"] #pane {
+  display: flex;
+  grid-column: 2;
+  grid-row: 1;
+  height: auto;
+}
+#pane-head {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  height: 28px;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--dim);
+  border-bottom: 1px solid var(--line);
+}
+#pane-close { cursor: pointer; color: var(--dimmer); }
+#pane-close:hover { color: var(--err); }
+#pane-out {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+#pane-out > div { white-space: pre-wrap; word-break: break-word; }
+#pane-out > .live-clock { white-space: pre; word-break: normal; }
+#pane-out .cmd   { color: var(--text); }
+#pane-out .out   { color: var(--dim); }
+#pane-out .ok    { color: var(--accent); }
+#pane-out .err   { color: var(--err); }
+#pane-out .dim   { color: var(--dimmer); }
+
+/* ============================================================
+   WIDGETS FLOTANTES (BOOT 14): tiles arrastrables sobre el desktop.
+   Mismo lenguaje que el resto: superficie plana, hairline, sin sombras.
+   ============================================================ */
+#widgets {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;   /* el layer no roba clicks — los widgets sí */
+  z-index: 60;
+}
+.fsw {
+  position: absolute;
+  min-width: 190px;
+  max-width: 300px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  pointer-events: auto;
+  user-select: none;
+}
+.fsw-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  height: 24px;
+  padding: 0 8px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--dim);
+  border-bottom: 1px solid var(--line);
+  cursor: move;
+}
+.fsw-head:hover { color: var(--accent); }
+.fsw-x { cursor: pointer; color: var(--dimmer); }
+.fsw-x:hover { color: var(--err); }
+.fsw-body {
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  color: var(--dim);
+  min-height: 34px;
+}
+.fsw-big { font-size: 26px; letter-spacing: 3px; color: var(--accent); }
+.fsw-sub { font-size: 10px; letter-spacing: 1px; color: var(--dimmer); margin-top: 2px; }
+.fsw-body .live-clock { white-space: pre; font-size: 12px; line-height: 1.15; color: var(--accent); }
+
+/* Radio: badge en la status bar mientras suena */
+#sb-radio { color: var(--accent); }
+#sb-radio:empty { display: none; }
+
+/* ============================================================
+   TERMINAL COMO TILE (estética window manager)
+   Tile anclada al fondo; el borde habla del estado:
+   reposo = hairline · hover = dimmer · foco = acento.
+   ============================================================ */
+#terminal {
+  position: relative;
+  flex: none;
+  height: 38%;
+  min-height: 210px;
+  margin: 0 12px 12px;          /* canaleta del desktop alrededor */
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s ease-out;
+}
+#terminal:hover   { border-color: var(--dimmer); }
+#terminal.focused { border-color: var(--border); }
+
+#term-head {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  height: 28px;
+  padding: 0 12px;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--dim);
+  border-bottom: 1px solid var(--line);
+  transition: color 0.15s;
+}
+#term-head > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#terminal.focused #term-head { color: var(--accent); }
+
+#term-out {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+/* CRÍTICO: pre-wrap — sin esto el navegador colapsa espacios y saltos
+   de línea y TODAS las columnas (help/system/ps) salen desalineadas.
+   break-word: una URL larga no rompe el layout horizontal. */
+#term-out > div {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+/* ASCII art (reloj/timer/top/matrix): pre puro, NUNCA wrappea. */
+#term-out > .live-clock { white-space: pre; word-break: normal; }
+#term-out .cmd   { color: var(--text); }
+#term-out .cmd b { color: var(--accent); font-weight: normal; }
+#term-out .out   { color: var(--dim); }
+#term-out .ok    { color: var(--accent); }
+#term-out .err   { color: var(--err); }
+#term-out .dim   { color: var(--dimmer); }
+
+/* ---- Línea de input: el input real es invisible ---- */
+#term-line {
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 14px;
+  border-top: 1px solid var(--line);
+  white-space: pre;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;             /* el scroll acompaña, no se ve */
+}
+#term-line::-webkit-scrollbar { display: none; }
+#term-prompt { color: var(--accent-dim); flex: none; transition: color 0.15s; margin-right: 8px; }
+#terminal.focused #term-prompt { color: var(--accent); }
+#term-mirror { color: var(--text); white-space: pre; }
+#term-caret {
+  flex: none;
+  width: 9px;
+  height: 17px;
+  margin-left: 2px;
+  background: var(--accent-dim);   /* el caret también habla del foco */
+  animation: blink 1.1s steps(1) infinite;
+  transition: background 0.15s;
+}
+#terminal.focused #term-caret { background: var(--accent); }
+#term-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  border: 0;
+  padding: 0;
+  left: -9999px;
+}
+@keyframes blink { 0%,55% { opacity: 1; } 56%,100% { opacity: 0; } }
+
+/* ---- Sugerencias (TAB) ---- */
+#suggestions {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  margin-bottom: 6px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 10;
+  animation: bootIn 0.1s ease-out;
+}
+#suggestions .sug-head {
+  padding: 5px 12px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--dim);
+  border-bottom: 1px solid var(--line);
+}
+#suggestions .sug {
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--dim);
+  cursor: pointer;
+}
+#suggestions .sug:hover { color: var(--text); }
+#suggestions .sug .name { color: var(--text); min-width: 110px; }
+#suggestions .sug .type { font-size: 10px; color: var(--dimmer); min-width: 64px; text-transform: uppercase; }
+#suggestions .sug.sel {
+  background: var(--raised);
+  box-shadow: inset 2px 0 0 var(--accent);
+  color: var(--accent);
+}
+#suggestions .sug.sel .name { color: var(--accent); }
+
+/* ---- Widgets ASCII vivos (date / timer / top / matrix) ----
+   Todos comparten clase: color de acento vivo, gris al congelar. */
+.live-clock {
+  white-space: pre;
+  color: var(--accent);
+  line-height: 1.15;
+  margin: 6px 0;
+}
+.live-clock.frozen { color: var(--dimmer); }   /* queda como historial */
+
+/* ============ COMMAND PALETTE (BOOT 08, Ctrl+K) ============
+   Overlay launcher: mismo lenguaje visual que las sugerencias
+   de la terminal — hairline, acento solo en el estado sel. */
+#palette {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 12vh;
+  z-index: 100;
+}
+#palette[hidden] { display: none; }
+#palette-box {
+  width: min(560px, 90vw);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.55);
+  animation: bootIn 0.12s ease-out;
+}
+#palette-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 14px;
+  background: var(--bg);
+  border: none;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  outline: none;
+}
+#palette-input::placeholder { color: var(--dimmer); }
+#palette-list { max-height: 300px; overflow-y: auto; }
+.pal-head {
+  padding: 5px 14px;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--dim);
+  border-bottom: 1px solid var(--line);
+}
+.pal {
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  padding: 6px 14px;
+  font-size: 13px;
+  color: var(--dim);
+  cursor: pointer;
+}
+.pal:hover { color: var(--text); }
+.pal .name { color: var(--text); min-width: 110px; }
+.pal .type { font-size: 10px; color: var(--dimmer); min-width: 64px; text-transform: uppercase; }
+.pal .desc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.pal.sel {
+  background: var(--raised);
+  box-shadow: inset 2px 0 0 var(--accent);
+  color: var(--accent);
+}
+.pal.sel .name { color: var(--accent); }
+#palette-hint {
+  padding: 5px 14px;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--dimmer);
+  border-top: 1px solid var(--line);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================================
+   STUDIO (v0.17): el escritorio como lienzo.
+   Defaults flat (todo 0 / off) — los efectos son opt-in y tienen
+   kill switch ('perf low'). El blur cuesta GPU: se usa con moderación.
+   ============================================================ */
+
+/* ---- Wallpaper: capa más profunda, bajo la UI, con velo ---- */
+#wallpaper {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+/* Capas sobre el wallpaper. #widgets NO va acá: su position:fixed original
+   (con z-index 60) es lo que lo mantiene cubriendo el viewport entero. */
+#statusbar, #workspacebar { position: relative; z-index: 1; }
+#screen { z-index: 1; }
+#palette { z-index: 100; }
+#wallpaper[hidden] { display: none; }
+
+/* Grid opcional sobre el wallpaper (cuantización visual del tiling) */
+body.wall-grid #wallpaper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(to right, rgba(120, 255, 170, 0.05) 0 1px, transparent 1px 40px),
+    repeating-linear-gradient(to bottom, rgba(120, 255, 170, 0.05) 0 1px, transparent 1px 40px);
+}
+/* El grid sobre fondo plano (sin wall) no tiene superficie donde apoyarse:
+   se descarta en applyTokens (la clase solo se activa con wallpaper). */
+
+/* ---- Scanlines CRT (config studio scan on) — overlay, no filtros ---- */
+body.scanlines #screen::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 90;
+  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.14) 0 1px, transparent 1px 3px);
+}
+
+/* ---- Blur por superficie (opt-in) ---- */
+#terminal, #pane { border-radius: var(--radius, 0); }
+#terminal[data-blur="1"], #pane[data-blur="1"] {
+  backdrop-filter: blur(var(--blur-amt, 8px));
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+}
+#statusbar, #workspacebar { border-radius: 0; }
+
+/* ---- Widgets v2: tamaño · acento propio · blur propio ---- */
+.fsw { border-radius: var(--radius, 0); --wa: var(--accent); }
+.fsw-head { border-top-left-radius: var(--radius, 0); border-top-right-radius: var(--radius, 0); }
+.fsw-internal { --accent: var(--wa); }
+.fsw .fsw-big, .fsw .fsw-clock { color: var(--wa, var(--accent)); }
+.fsw-s { max-width: 170px; }
+.fsw-s .fsw-big { font-size: 20px; }
+.fsw-l { max-width: 380px; }
+.fsw-l .fsw-big { font-size: 34px; }
+.fsw-xl { max-width: 480px; }
+.fsw-xl .fsw-big { font-size: 44px; }
+.fsw-clock {
+  white-space: pre;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.1;
+  color: var(--accent);
+}
+.fsw-img { width: 100%; display: block; image-rendering: auto; }
+.fsw .fsw-big:has(+ .fsw-sub) { cursor: default; }
+.fsw-hint { cursor: pointer; }
+
+/* ---- Widgets: blur individual ---- */
+.fsw[data-blur="1"] {
+  backdrop-filter: blur(var(--blur-amt, 8px));
+  background: color-mix(in srgb, var(--surface) 75%, transparent);
+}

@@ -1,0 +1,36 @@
+name: Validate
+
+# Siempre corre, no necesita secretos y no publica nada.
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validar extension
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validar manifest, permisos, XPI y secretos
+        run: python tools/validate.py
+
+      - name: Comprobar que el empaquetado funciona
+        run: python tools/build_xpi.py --check-only
+
+      - name: Resumen
+        if: always()
+        run: |
+          {
+            echo "## FLOORP SYSTEM — validacion"
+            echo ""
+            python -c "import json;m=json.load(open('floorp-system-extension/manifest.json'));print('- version:',m['version']);print('- id:',m['browser_specific_settings']['gecko']['id'])"
+          } >> "$GITHUB_STEP_SUMMARY"

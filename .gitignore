@@ -1,0 +1,66 @@
+# =============================================================
+# FLOORP SYSTEM — .gitignore
+#
+# IMPORTANTE: este repositorio vive DENTRO de la carpeta del
+# perfil de Floorp. Para no publicar nunca datos del navegador
+# usamos una LISTA BLANCA: se ignora TODO por defecto y solo se
+# permite lo que es código fuente del producto.
+#
+# Si agregás algo nuevo al repo, agregá su excepción acá.
+# =============================================================
+
+# 1. Ignorar todo, en la raíz
+/*
+
+# 2. Permitir solo el código fuente y la automatización
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/LICENSE
+!/package.json
+!/package-lock.json
+!/release.config.json
+!/web-ext-config.js
+!/site/
+!/.github/
+!/floorp-system-extension/
+!/chrome/
+!/fsys-bridge/
+!/installer/
+!/tools/
+!/docs/
+
+# 3. Excluir de lo permitido: datos locales, secretos y basura
+#    (aunque estén dentro de carpetas permitidas)
+fsys-bridge/data/
+fsys-bridge/*.log
+tools/amo_keys.txt
+tools/keys.json
+tools/*.pid
+tools/*.log
+**/__pycache__/
+**/*.pyc
+
+# 4. Secretos y credenciales (nunca al repo)
+.env
+.env.*
+*.pem
+*.key
+secrets.json
+amo-credentials.json
+release-credentials.json
+
+# 5. Artefactos generados (se reconstruyen; no se versionan)
+/dist/
+/web-ext-artifacts/
+/site/updates.json
+/site/*.xpi
+/node_modules/
+
+# 6. Ruido de sistema / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp

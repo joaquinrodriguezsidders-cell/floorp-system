@@ -1,0 +1,99 @@
+@charset "UTF-8";
+@-moz-document url(chrome://browser/content/browser.xhtml) {
+/* ============================================================
+   FLOORP SYSTEM INITIALIZED — BOOT 01
+   Tema de UI nativa: oscuro, plano, técnico.
+   Colores definidos una sola vez (fuente única de verdad).
+   ============================================================ */
+
+:root {
+  --fsys-bg:      #050706;   /* negro casi absoluto */
+  --fsys-surface: #0a110d;   /* superficie oscura   */
+  --fsys-border:  #1f633b;   /* verde oscuro bordes */
+  --fsys-accent:  #63ff9b;   /* verde terminal      */
+  --fsys-dim:     #4a7a5e;   /* texto secundario    */
+}
+
+/* ---- Base de la ventana ---- */
+#main-window,
+#navigator-toolbox {
+  background: var(--fsys-bg) !important;
+}
+
+/* ---- Barra de navegación: plana, borde inferior técnico ---- */
+#nav-bar {
+  background: var(--fsys-surface) !important;
+  border-bottom: 1px solid var(--fsys-border) !important;
+  box-shadow: none !important;
+}
+
+/* Barra de direcciones: sin relleno, borde fino */
+#urlbar-background,
+#urlbar[input=""] #urlbar-background {
+  background: var(--fsys-bg) !important;
+  border: 1px solid var(--fsys-border) !important;
+  border-radius: 0 !important;
+}
+#urlbar[focused] #urlbar-background {
+  border-color: var(--fsys-accent) !important;
+}
+#urlbar {
+  --urlbar-box-focus-text-color: var(--fsys-accent) !important;
+  color: #c8e6d4 !important;
+  font-family: "Cascadia Mono", Consolas, monospace !important;
+}
+
+/* ---- Barra de pestañas ---- */
+#TabsToolbar {
+  background: var(--fsys-bg) !important;
+}
+.tabbrowser-tab .tab-background {
+  background: var(--fsys-surface) !important;
+  border: 1px solid var(--fsys-border) !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+.tabbrowser-tab[selected] .tab-background {
+  border-color: var(--fsys-accent) !important;
+  box-shadow: inset 2px 0 0 var(--fsys-accent) !important;
+}
+.tab-label {
+  font-family: "Cascadia Mono", Consolas, monospace !important;
+  color: var(--fsys-dim) !important;
+}
+.tabbrowser-tab[selected] .tab-label {
+  color: var(--fsys-accent) !important;
+}
+
+/* ---- Toolbars de marcadores / barras inferiores ---- */
+#PersonalToolbar,
+#browser-bottombox {
+  background: var(--fsys-bg) !important;
+  border-top: 1px solid var(--fsys-border) !important;
+}
+
+/* ---- Iconos y botones: solo tintura, sin tocar color de fondo
+     (evita romper estados disabled/danger del chrome) ---- */
+toolbarbutton,
+.urlbar-icon {
+  fill: var(--fsys-dim) !important;
+  color: var(--fsys-dim) !important;
+}
+toolbarbutton:hover {
+  fill: var(--fsys-accent) !important;
+  color: var(--fsys-accent) !important;
+}
+
+/* ---- Cursor de texto en la urlbar (el input no es un botón) ----
+     #urlbar-input es el <input> real dentro del contenedor. */
+#urlbar-input {
+  cursor: text !important;
+}
+
+/* ---- Modo degradado: navegación privada no hereda el tema ---- */
+#main-window[privatebrowsingmode="temporary"] #nav-bar {
+  background: #14181a !important;   /* gris azulado privado, sin verde */
+  border-bottom-color: #2a3033 !important;
+}
+}

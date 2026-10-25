@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FLOORP SYSTEM — instalación y actualizaciones</title>
+<style>
+  :root{--bg:#0b0f10;--fg:#d8f5e6;--dim:#6e8a7d;--acc:#5fe8ff;--line:#1d2a28}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:15px/1.65 ui-monospace,"Cascadia Code",Consolas,monospace;padding:48px 20px}
+  main{max-width:720px;margin:0 auto}
+  h1{font-size:20px;letter-spacing:.18em;margin:0 0 4px}
+  .sub{color:var(--dim);margin:0 0 32px;font-size:13px}
+  h2{font-size:13px;letter-spacing:.14em;color:var(--acc);margin:32px 0 10px;
+     text-transform:uppercase;border-bottom:1px solid var(--line);padding-bottom:6px}
+  a{color:var(--acc)}
+  code{background:#111a19;border:1px solid var(--line);border-radius:4px;
+       padding:1px 5px;font-size:13px}
+  pre{background:#111a19;border:1px solid var(--line);border-radius:6px;
+      padding:14px;overflow:auto;font-size:13px}
+  .card{border:1px solid var(--line);border-radius:8px;padding:18px;margin:14px 0;
+        background:#0e1514}
+  .ver{color:var(--acc)}
+  .muted{color:var(--dim);font-size:13px}
+  .warn{border-color:#3a2a12;background:#171008}
+  ol,ul{padding-left:20px}
+  li{margin:6px 0}
+  .btn{display:inline-block;background:var(--acc);color:#04110f;font-weight:700;
+       text-decoration:none;padding:10px 18px;border-radius:6px;margin-top:8px}
+</style>
+</head>
+<body>
+<main>
+  <h1>FLOORP SYSTEM</h1>
+  <p class="sub">Entorno operativo sobre Floorp · instalación y actualizaciones</p>
+
+  <div class="card">
+    <div>versión publicada: <span class="ver" id="ver">consultando…</span></div>
+    <div class="muted" id="meta"></div>
+    <a class="btn" id="dl" href="#" style="display:none">Descargar .xpi</a>
+  </div>
+
+  <h2>Instalar (una sola vez)</h2>
+  <ol>
+    <li>Descargá el archivo <code>.xpi</code> con el botón de arriba.</li>
+    <li>Abrí Floorp y escribí <code>about:addons</code> en la barra de direcciones.</li>
+    <li>Clic en el engranaje (⚙) → <strong>Instalar complemento desde archivo…</strong></li>
+    <li>Elegí el <code>.xpi</code> descargado y confirmá.</li>
+    <li>Abrí una pestaña nueva (<code>Ctrl+T</code>): FLOORP SYSTEM arranca.</li>
+  </ol>
+
+  <h2>Actualizaciones automáticas</h2>
+  <p>Una vez instalada una versión que incluya el canal de actualizaciones,
+     Floorp consulta este endpoint y ofrece las versiones nuevas solo:</p>
+  <pre id="endpoint">updates.json</pre>
+  <p class="muted">Nada de descargas manuales: el navegador compara la versión
+     instalada con la publicada y actualiza cuando hay una mayor.</p>
+
+  <div class="card warn">
+    <strong>Importante</strong>
+    <p class="muted" style="margin:8px 0 0">
+      Las versiones instaladas <em>antes</em> de que existiera el canal de
+      actualizaciones no tienen la dirección de este endpoint guardada, así que
+      no pueden actualizarse solas. Hay que instalar una vez la versión actual;
+      a partir de ahí, todas las siguientes llegan automáticamente.
+    </p>
+  </div>
+
+  <h2>Comprobar que funciona</h2>
+  <pre>about:support  →  sección "Extensiones"  →  buscar FLOORP SYSTEM y su versión</pre>
+  <p class="muted">Si la versión mostrada sube después de una publicación nueva,
+     las actualizaciones automáticas están funcionando.</p>
+</main>
+
+<script>
+(async () => {
+  const ver = document.getElementById('ver');
+  const meta = document.getElementById('meta');
+  const dl = document.getElementById('dl');
+  const endpoint = document.getElementById('endpoint');
+  endpoint.textContent = new URL('updates.json', location.href).href;
+  try {
+    const r = await fetch('updates.json', { cache: 'no-store' });
+    if (!r.ok) throw new Error(r.status);
+    const data = await r.json();
+    const addon = Object.values(data.addons || {})[0];
+    const last = (addon && addon.updates && addon.updates[addon.updates.length - 1]) || null;
+    if (!last) throw new Error('sin entradas');
+    ver.textContent = last.version;
+    meta.textContent = 'id: ' + Object.keys(data.addons)[0];
+    dl.href = last.update_link;
+    dl.style.display = 'inline-block';
+  } catch (e) {
+    ver.textContent = 'no disponible';
+    meta.textContent = 'todavía no se publicó ninguna versión firmada.';
+  }
+})();
+</script>
+</body>
+</html>

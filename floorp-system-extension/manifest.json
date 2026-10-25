@@ -1,0 +1,40 @@
+{
+  "manifest_version": 2,
+  "name": "FLOORP SYSTEM",
+  "version": "0.19.0",
+  "description": "FLOORP SYSTEM INITIALIZED — entorno operativo sobre Floorp: terminal, workspaces, tabs, apps y archivos del sistema (con fsys-bridge local).",
+  "permissions": [
+    "tabs",
+    "storage",
+    "notifications",
+    "downloads"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1/*"
+  ],
+  "chrome_url_overrides": {
+    "newtab": "newtab/index.html"
+  },
+  "background": {
+    "scripts": [
+      "background/state.js",
+      "background/workspaces.js",
+      "background/auto.js",
+      "background/vault.js",
+      "background/apps.js",
+      "background/main.js"
+    ],
+    "persistent": true
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "floorp-system@fsys.system",
+      "strict_min_version": "115.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    }
+  }
+}

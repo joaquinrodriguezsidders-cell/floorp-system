@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#050706">
+<title>FLOORP SYSTEM</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23050706'/%3E%3Crect x='3' y='3' width='10' height='10' fill='none' stroke='%2363ff9b'/%3E%3Crect x='6' y='6' width='4' height='4' fill='%2363ff9b'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/core.css">
+</head>
+<body data-view="boot">
+
+<!-- ============ WALLPAPER (STUDIO v0.17): capa bajo todo, con velo ============ -->
+<div id="wallpaper" hidden aria-hidden="true"></div>
+
+<!-- ============ STATUS BAR (estilo bar de desktop Linux) ============ -->
+<header id="statusbar">
+  <span id="sb-wsmode" title=""></span>
+  <span id="sb-workspace">01 DEV</span>
+  <div class="sb-right">
+    <span id="sb-radio"></span>
+    <span id="sb-pin"></span>
+    <span id="sb-net">NET --</span>
+    <span id="sb-ai">AI ○</span>
+    <span id="sb-clock">--:--</span>
+    <span id="sb-state" class="ok">SYSTEM ONLINE</span>
+  </div>
+</header>
+
+<!-- ============ WORKSPACE BAR (se llena dinámicamente desde el engine) ============ -->
+<nav id="workspacebar"></nav>
+
+<!-- ============ MAIN ============ -->
+<main id="screen">
+
+  <!-- Vista: boot -->
+  <div id="boot" data-view="boot">
+    <div class="boot-title">FLOORP SYSTEM <em>INITIALIZED</em></div>
+    <div id="boot-lines"></div>
+    <div id="boot-ok">SYSTEM ONLINE</div>
+  </div>
+
+  <!-- Tiling v1 (BOOT 13): panel de contenido al lado de la terminal -->
+  <section id="pane" hidden aria-label="Panel de contenido">
+    <div id="pane-head">
+      <span id="pane-title">PANEL</span>
+      <span id="pane-close">[x]</span>
+    </div>
+    <div id="pane-out"></div>
+  </section>
+
+  <!-- Vista: home -->
+  <div id="home" data-view="home">
+    <div id="hero">
+      <div id="hero-title">FLOORP SYSTEM</div>
+      <div id="hero-sub">INITIALIZED</div>
+      <ul id="syschecks">
+        <li><span>NETWORK</span><i class="leader"></i><b id="chk-net">..........</b></li>
+        <li><span>AI CORE</span><i class="leader"></i><b id="chk-ai">..........</b></li>
+      <!-- AI badge: AI.badge() lo actualiza con el estado real de Ollama -->
+        <li><span>WORKSPACE</span><i class="leader"></i><b id="chk-ws">..........</b></li>
+        <li><span>TERMINAL</span><i class="leader"></i><b id="chk-term">..........</b></li>
+      </ul>
+      <div id="focus-hint">Escribí directo · TAB autocompleta · ↑ historial · CTRL+K palette · ALT+1..9 workspaces · CTRL+L limpia</div>
+    </div>
+
+    <!-- TILE: terminal (ventana del wm) -->
+    <section id="terminal" aria-label="Terminal FLOORP SYSTEM">
+      <div id="term-head">
+        <span>FLOORP SYSTEM // TERMINAL</span>
+        <span><span id="term-bridge">BRIDGE: --</span> · <span id="term-version">v--</span></span>
+      </div>
+      <div id="term-out" aria-live="off"></div>
+      <div id="term-line">
+        <span id="term-prompt">user@floorp:~$</span>
+        <span id="term-mirror"></span><span id="term-caret"></span>
+        <input id="term-input" type="text" autocomplete="off" autocapitalize="off"
+               autocorrect="off" spellcheck="false" aria-label="entrada de comandos">
+      </div>
+      <div id="suggestions" hidden></div>
+    </section>
+  </div>
+
+</main>
+
+<!-- Widgets flotantes (BOOT 14): los monta WidgetLayer.restore() -->
+<div id="widgets" aria-label="Widgets del escritorio"></div>
+
+<!-- Selector de archivo local para radio (espectro REAL, sin CORS) -->
+<input id="radio-file" type="file" accept="audio/*" hidden>
+
+<!-- Selector de archivo local para wallpaper (STUDIO) -->
+<input id="wall-file" type="file" accept="image/*" hidden>
+
+<!-- ============ COMMAND PALETTE (Ctrl+K, BOOT 08) ============ -->
+<div id="palette" hidden>
+  <div id="palette-box">
+    <input id="palette-input" type="text" placeholder="buscar comando..."
+           autocomplete="off" autocapitalize="off" spellcheck="false"
+           aria-label="command palette">
+    <div id="palette-list"></div>
+    <div id="palette-hint">ENTER ejecutar · TAB completa arg · ↑↓ navegar · ESC cerrar</div>
+  </div>
+</div>
+
+<script src="js/bridge.js"></script>
+<script src="js/core.js"></script>
+<script src="js/palette.js"></script>
+</body>
+</html>
