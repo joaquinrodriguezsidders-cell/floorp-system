@@ -366,6 +366,25 @@ const Handlers = {
     return Vault.focusCheck();
   },
 
+  /* ==== RADIO 2.0 ====
+     La UI normalmente habla directo con RadioEngine (mismo proceso).
+     Estos mensajes existen como plan B: si una vista no puede usar
+     getBackgroundPage(), todo sigue funcionando por acá. */
+  async "radio.state"() {
+    await RadioEngine.ensure();
+    return { ok: true, data: RadioEngine.snapshot() };
+  },
+
+  async "radio.list"() {
+    await RadioEngine.ensure();
+    return { ok: true, data: RadioEngine.list() };
+  },
+
+  async "radio.cmd"(p) {
+    const { cmd, ...rest } = p || {};
+    return RadioEngine.handle(cmd, rest);
+  },
+
   /* Navegación relativa: next / prev con wrap-around */
   async "tab.step"({ dir }) {
     const tabs = await browser.tabs.query({ currentWindow: true });

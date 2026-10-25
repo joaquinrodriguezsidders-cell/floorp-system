@@ -42,6 +42,39 @@ con `python -m http.server` y abrí `index.html`. La terminal funciona; los
 comandos que dependen de la extensión (tabs, workspaces reales) avisan que están
 en modo LOCAL.
 
+## Radio (v0.19)
+
+El audio **no vive en la home**: lo reproduce la página de background, así que
+sigue sonando al cambiar de pestaña, navegar o abrir otra ventana. La home y la
+ventana flotante son mandos a distancia del mismo motor.
+
+```bash
+radio                  # qué está sonando
+radio list             # biblioteca de emisoras
+radio <nombre|#>       # sintoniza
+radio win              # ventana flotante (visible sobre cualquier pestaña)
+radio pin              # barra fija al pie de la home, con transporte y espectro
+radio sleep 30         # se apaga sola en 30 minutos
+radio bars 3           # espectro ASCII en la terminal (1-8 filas)
+radio bars mirror      # espectro simétrico
+```
+
+Tres tipos de emisora, todos con el mismo comando:
+
+| tipo | se crea con | cómo suena |
+|---|---|---|
+| **stream** | `radio add lofi <url-mp3>` | directo, con espectro real |
+| **web** | `radio add fav youtube <url>` · `spotify <url>` | dentro de la ventana flotante |
+| **archivos** | `radio files mi-cinta` | tus MP3/OGG, como una cinta con pistas |
+
+Spotify y YouTube no exponen su audio a otras aplicaciones: su reproductor oficial
+se incrusta en la ventana flotante, y por eso esas emisoras muestran el espectro
+como *visual* (no hay analizador posible sobre otro origen).
+
+Los archivos locales **no se copian** al almacenamiento de la extensión: se
+vuelven a elegir una vez por sesión (`radio files <nombre>`). Es a propósito —
+no duplicamos tu música dentro del perfil.
+
 ## Cómo funcionan las actualizaciones
 
 Arquitectura: **firma oficial de Mozilla (AMO, canal *unlisted*) + manifiesto de

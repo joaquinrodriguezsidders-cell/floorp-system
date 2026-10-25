@@ -1,0 +1,133 @@
+/* ============================================================
+   FLOORP RADIO — ventana flotante
+   Misma estética que la home: superficies planas, hairline,
+   borde de acento SOLO en estados.
+   ============================================================ */
+:root {
+  --bg: #050706; --surface: #0a110d; --raised: #0d1712;
+  --line: #152219; --border: #1f633b;
+  --accent: #63ff9b; --accent-dim: #2f8f57;
+  --dim: #4a7a5e; --dimmer: #2e4a3a;
+  --text: #c8e6d4; --err: #ff5f56;
+  --mono: "Cascadia Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: var(--mono); font-size: 12px;
+  display: flex; flex-direction: column; overflow: hidden;
+  user-select: none;
+}
+* { scrollbar-width: thin; scrollbar-color: var(--dimmer) transparent; }
+
+/* ---- cabecera ---- */
+#head {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 12px; border-bottom: 1px solid var(--line);
+  background: var(--raised); flex: none;
+}
+#dot { width: 7px; height: 7px; flex: none; background: var(--dimmer); }
+#dot.on { background: var(--accent); }
+#dot.pause { background: var(--accent-dim); }
+#head-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.35; }
+#head-txt b {
+  font-size: 12px; letter-spacing: .12em; color: var(--accent);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#st-kind { color: var(--dim); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+#win-close { color: var(--dimmer); cursor: pointer; padding: 2px 4px; }
+#win-close:hover { color: var(--err); }
+
+/* ---- espectro ---- */
+#viz { padding: 12px 12px 6px; flex: none; border-bottom: 1px solid var(--line); }
+#bars {
+  display: flex; align-items: flex-end; gap: 2px;
+  height: 96px; width: 100%;
+}
+#bars i {
+  flex: 1 1 auto; min-width: 2px; height: 2px;
+  background: var(--accent); opacity: .92;
+  transition: height 60ms linear;
+}
+#bars i.hi { background: #d6ffe6; }
+#viz-foot {
+  display: flex; justify-content: space-between;
+  color: var(--dimmer); font-size: 10px; letter-spacing: .1em; margin-top: 6px;
+}
+#viz-mode.real { color: var(--accent-dim); }
+
+/* ---- marco web (Spotify / YouTube) ---- */
+#frame { flex: 1; display: flex; border-bottom: 1px solid var(--line); min-height: 0; }
+#frame[hidden] { display: none; }
+#embed { width: 100%; height: 100%; border: 0; background: #000; }
+
+/* ---- pista actual ---- */
+#now { padding: 9px 12px; flex: none; border-bottom: 1px solid var(--line); }
+#track {
+  color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 12px;
+}
+#pos { color: var(--dimmer); font-size: 10px; margin-top: 3px; letter-spacing: .08em; }
+
+/* ---- transporte ---- */
+#transport {
+  display: flex; gap: 4px; padding: 9px 12px; flex: none;
+  border-bottom: 1px solid var(--line); flex-wrap: wrap;
+}
+button {
+  font-family: var(--mono); font-size: 13px; line-height: 1;
+  background: var(--surface); color: var(--dim);
+  border: 1px solid var(--line); padding: 7px 9px; cursor: pointer;
+  min-width: 32px;
+}
+button:hover { color: var(--text); border-color: var(--border); }
+button.main { color: var(--accent); min-width: 44px; }
+button.on { color: #04120a; background: var(--accent); border-color: var(--accent); }
+button:disabled { opacity: .35; cursor: default; }
+
+/* ---- volumen ---- */
+#volrow {
+  display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+  flex: none; border-bottom: 1px solid var(--line);
+}
+#vol-ico { cursor: pointer; color: var(--dim); }
+#vol-num { color: var(--dimmer); width: 26px; text-align: right; }
+input[type="range"] {
+  flex: 1; -webkit-appearance: none; appearance: none;
+  height: 2px; background: var(--dimmer); cursor: pointer;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 10px; height: 14px; background: var(--accent); border: 0; border-radius: 0;
+}
+
+/* ---- biblioteca ---- */
+#lib { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+#lib-head {
+  display: flex; justify-content: space-between; padding: 8px 12px 5px;
+  color: var(--dimmer); font-size: 10px; letter-spacing: .14em;
+}
+#lib-list { overflow-y: auto; flex: 1; min-height: 0; padding: 0 6px 6px; }
+.st {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px; cursor: pointer; border: 1px solid transparent;
+}
+.st:hover { background: var(--surface); border-color: var(--line); }
+.st.cur { border-color: var(--border); background: var(--surface); }
+.st-n {
+  flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: var(--text);
+}
+.st.cur .st-n { color: var(--accent); }
+.st-k { font-size: 9px; letter-spacing: .1em; color: var(--dimmer); text-transform: uppercase; }
+.st-f { color: var(--dimmer); font-size: 11px; }
+.st-f.on { color: var(--accent); }
+#lib-hint { padding: 4px 12px 10px; color: var(--dimmer); font-size: 10px; line-height: 1.5; }
+#lib-hint code { color: var(--accent-dim); }
+
+/* ---- pie ---- */
+#foot {
+  flex: none; border-top: 1px solid var(--line);
+  padding: 6px 12px; color: var(--dim); font-size: 10px; min-height: 24px;
+}
+#foot.err { color: var(--err); }

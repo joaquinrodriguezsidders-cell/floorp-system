@@ -2608,235 +2608,10 @@ const WMO = (code) => {
   return { icon: (m[code] || m[3])[0], txt: (m[code] || m[3])[1] };
 };
 
-const Radio = {
-  audio: null, ctx: null, src: null, analyser: null,
-  playing: false, station: null, label: "", graphed: false,
-
-  PRESETS: {
-    lofi:      { name: "Groove Salad",    url: "https://ice1.somafm.com/groovesalad-128-mp3" },
-    jazz:      { name: "Sonic Universe",  url: "https://ice1.somafm.com/sonicuniverse-128-mp3" },
-    techno:    { name: "The Trip",        url: "https://ice1.somafm.com/thetrip-128-mp3" },
-    synthwave: { name: "Underground 80s", url: "https://ice1.somafm.com/u80s-128-mp3" },
-    classical: { name: "Cinematic",       url: "https://ice1.somafm.com/cinematic-128-mp3" },
-    space:     { name: "Space Station",   url: "https://ice1.somafm.com/spacestation-128-mp3" },
-  },
-
-  badge() {
-    const el = document.getElementById("sb-radio");
-    if (el) el.textContent = this.playing ? `♪ ${this.label}` : "";
-  },
-
-  _ensureAudio() {
-    if (this.audio) return;
-    this.audio = new Audio();
-    this.audio.preload = "none";
-    this.audio.addEventListener("playing", () => { this.playing = true; this.badge(); });
-    this.audio.addEventListener("pause", () => { this.playing = false; this.badge(); });
-    const fi = document.getElementById("radio-file");
-    if (fi && !fi.dataset.bound) {
-      fi.addEventListener("change", () => {
-        const f = fi.files && fi.files[0];
-        if (!f) return;
-        const url = URL.createObjectURL(f);
-        this.play("file", url, f.name.replace(/\.[^.]+$/, "").slice(0, 22)).then((ok) => {
-          if (ok.error) Term.printErr("radio: " + ok.error);
-          else Term.printOut(`♪ ON AIR: ${f.name} — 'radio bars' para el espectro (REAL, sin CORS)`, "ok");
-        });
-        fi.value = "";
-      });
-      fi.dataset.bound = "1";
-    }
-  },
-
-  /* Engancha el elemento al grafo de audio SOLO si el contexto corre
-     (con contexto suspendido, el elemento se silenciaría). */
-  _hook() {
-    if (this.graphed) return !!(this.ctx && this.ctx.state === "running");
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC || !this.audio) return false;
-    if (!this.ctx) { try { this.ctx = new AC(); } catch (e) { return false; } }
-    if (this.ctx.state !== "running") {
-      this.ctx.resume().catch(() => {});
-      if (this.ctx.state !== "running") return false;
-    }
-    try {
-      this.src = this.ctx.createMediaElementSource(this.audio);
-      this.analyser = this.ctx.createAnalyser();
-      this.analyser.fftSize = 512;
-      this.analyser.smoothingTimeConstant = 0.82;
-      this.src.connect(this.analyser);
-      this.analyser.connect(this.ctx.destination);
-      this.graphed = true;
-      return true;
-    } catch (e) { return false; }
-  },
-
-  _attempt(url) {
-    return new Promise((resolve, reject) => {
-      const a = this.audio;
-      const clean = () => { a.removeEventListener("error", onErr); a.removeEventListener("playing", onOk); clearTimeout(t); };
-      const onErr = () => { clean(); reject(new Error("stream no responde")); };
-      const onOk = () => { clean(); resolve(); };
-      const t = setTimeout(() => { clean(); reject(new Error("stream no responde (timeout)")); }, 12000);
-      a.addEventListener("error", onErr);
-      a.addEventListener("playing", onOk);
-      a.src = url;
-      a.play().catch((e) => { clean(); reject(new Error("el navegador bloqueó la reproducción — tocá la página y probá de nuevo")); });
-    });
-  },
-
-  async play(key, url, label) {
-    this._ensureAudio();
-    this.stop(false);
-    /* Intento 1: con CORS (permite espectro REAL si el server manda ACAO).
-       Algunos servers fallan con crossOrigin → intento 2 sin él. */
-    let err = null;
-    this.audio.crossOrigin = "anonymous";
-    try { await this._attempt(url); }
-    catch (e1) {
-      this.audio.removeAttribute("crossorigin");
-      try { await this._attempt(url); }
-      catch (e2) { err = e2.message; }
-    }
-    if (err) { this.playing = false; this.badge(); return { error: err }; }
-    this.audio.volume = (FSYS.config.radioVol ?? 80) / 100;
-    this.station = key; this.label = label;
-    this._hook();
-    this.badge();
-    return { label };
-  },
-
-  setVol(v) {
-    if (!this.audio) return false;
-    this.audio.volume = Math.min(1, Math.max(0, v / 100));
-    FSYS.config.radioVol = Math.round(v);
-    saveStore(STORE_KEYS.cfg, FSYS.config);
-    return true;
-  },
-
-  stop(clearVisual = true) {
-    if (this.audio) { try { this.audio.pause(); this.audio.removeAttribute("src"); this.audio.load(); } catch (e) {} }
-    this.playing = false; this.station = null; this.label = "";
-    if (clearVisual && typeof RadioVisual !== "undefined") RadioVisual.detachAll();
-    this.badge();
-  },
-
-  /* ¿El analizador recibe datos de verdad? (streams sin CORS → 0s) */
-  realSpectrum() {
-    if (!this.graphed || !this.analyser || !this.playing) return false;
-    const d = new Uint8Array(this.analyser.frequencyBinCount);
-    this.analyser.getByteFrequencyData(d);
-    return d.some((v) => v > 0);
-  },
-
-  bars() {
-    this._ensureAudio();
-    this._hook();
-    const el = document.createElement("div");
-    el.className = "live-clock";
-    Term.out.appendChild(el);
-    RadioVisual.attach(el, 1);
-    const o = Term.out;
-    if (o.scrollHeight - o.scrollTop - o.clientHeight < 60) o.scrollTop = o.scrollHeight;
-    Term.printOut("espectro en vivo (se congela con tu próximo comando)", "dim");
-  },
-};
-
-const RadioVisual = {
-  els: [], raf: null, phase: 0,
-  BARS: "▁▂▃▄▅▆▇█",
-  attach(el, rows) { this.detachEl(el); el.__fswRows = rows || 1; this.els.push(el); this.start(); },
-  detachEl(el) { const i = this.els.indexOf(el); if (i >= 0) this.els.splice(i, 1); },
-  detachAll() { this.els.length = 0; this.stop(); },
-  start() {
-    if (this.raf) return;
-    const tick = () => {
-      if (!this.els.length) { this.raf = null; return; }
-      this.draw();
-      this.raf = requestAnimationFrame(tick);
-    };
-    this.raf = requestAnimationFrame(tick);
-  },
-  stop() { if (this.raf) { cancelAnimationFrame(this.raf); this.raf = null; } },
-
-  _bands(real, data) {
-    const N = 16, out = new Array(N).fill(0);
-    if (real && data) {
-      const per = Math.floor(Math.min(data.length, 240) / N);
-      for (let b = 0; b < N; b++) {
-        let s = 0;
-        for (let k = 0; k < per; k++) s += data[b * per + k];
-        out[b] = Math.min(1, (s / per / 255) * 1.35);
-      }
-      return { vals: out, real: true };
-    }
-    /* Visual sincronizado al estado playing — etiquetado como visual */
-    this.phase += 0.09;
-    for (let b = 0; b < N; b++) {
-      const w = Radio.playing ? 1 : 0.06;
-      out[b] = Math.max(0, Math.min(1, w * (0.42 + 0.38 * Math.sin(this.phase + b * 0.62) + 0.18 * Math.sin(this.phase * 1.7 + b * 1.9) + (Math.random() - 0.5) * 0.18)));
-    }
-    return { vals: out, real: false };
-  },
-
-  draw() {
-    const real = Radio.realSpectrum();
-    let data = null;
-    if (real) { data = new Uint8Array(Radio.analyser.frequencyBinCount); Radio.analyser.getByteFrequencyData(data); }
-    const { vals, real: isReal } = this._bands(real, data);
-    for (const el of this.els) {
-      if (!el.isConnected) { this.detachEl(el); continue; }
-      el.textContent = this.render(el.__fswRows || 1, vals, isReal);
-    }
-  },
-
-  render(rows, vals, isReal) {
-    const lines = [];
-    for (let r = rows; r >= 1; r--) {
-      let line = "";
-      for (let b = 0; b < vals.length; b++) {
-        const v = vals[b] * rows;
-        line += v >= r - 0.5 ? "█" : (rows === 1 ? this.BARS[Math.max(1, Math.round(v * 8))] : " ");
-      }
-      lines.push(line);
-    }
-    if (rows > 2) lines.push((isReal ? "ESPECTRO REAL" : "ESPECTRO (visual)") + (Radio.playing ? "" : " — radio off"));
-    else lines.push(isReal ? "" : " ◦");
-    return lines.join("\n");
-  },
-};
-
-reg("radio", "Radio en vivo + espectro ASCII", "radio [<preset|url> | file | vol <0-100> | bars | status | stop]", (args) => {
-  const sub = (args[0] || "status").toLowerCase();
-  if (sub === "stop") { Radio.stop(); Term.printOut("radio apagada", "ok"); return; }
-  if (sub === "vol") {
-    const v = parseInt(args[1], 10);
-    if (isNaN(v) || v < 0 || v > 100) { Term.printErr("uso: radio vol <0-100>"); return; }
-    if (!Radio.audio) { Term.printErr("no hay radio reproduciéndose"); return; }
-    Radio.setVol(v);
-    Term.printOut(`vol → ${v}%`, "ok");
-    return;
-  }
-  if (sub === "bars") { Radio.bars(); return; }
-  if (sub === "file") { Radio._ensureAudio(); document.getElementById("radio-file").click(); return; }
-  if (sub === "status") {
-    Term.printOut(`RADIO // ${Radio.playing ? "♪ ON AIR: " + Radio.label + " (" + Math.round((Radio.audio ? Radio.audio.volume : 0.8) * 100) + "%)" : "OFF"}`, Radio.playing ? "ok" : "out");
-    Term.printOut(`presets: ${Object.keys(Radio.PRESETS).join(" · ")}`, "out");
-    Term.printOut("radio lofi · radio <url> · radio file (mp3 local, espectro real) · radio vol 70 · radio bars", "dim");
-    return;
-  }
-  const preset = Radio.PRESETS[sub];
-  const url = preset ? preset.url : (/^https?:\/\//.test(args[0] || "") ? args[0] : null);
-  if (!url) { Term.printErr(`preset desconocido: ${sub || "(vacío)"} — ${Object.keys(Radio.PRESETS).join(" · ")} — o una URL http(s)`); return; }
-  Term.printOut(`radio // conectando ${preset ? preset.name : "stream"}...`, "dim");
-  Radio.play(sub, url, preset ? preset.name.toLowerCase() : "stream").then((ok) => {
-    if (ok.error) Term.printErr("radio: " + ok.error);
-    else {
-      Term.printOut(`♪ ON AIR: ${ok.label}`, "ok");
-      Term.printOut("suena desde esta tab mientras navegás · 'radio bars' espectro · 'radio stop' apaga", "dim");
-    }
-  });
-});
+/* RADIO 2.0 (v0.19): el motor de audio vive en background/radio.js y
+   toda la UI (comandos, barra, espectro) en newtab/js/radio.js.
+   La home ya no reproduce audio: manda sobre el background, que
+   sigue sonando al cambiar de pestaña. */
 
 /* ==== WEB EN VIVO (BOOT 14): datos reales en la terminal, sin claves.
    Todo acepta '> pane' para mandar la salida al panel del tiling. ==== */
@@ -3219,11 +2994,31 @@ const WidgetLayer = {
       };
       draw(); rec.timer = setInterval(draw, 600000);
     } else if (T === "radio") {
-      body.textContent = "radio off\n'radio lofi' prende";
-      rec._radioSync = setInterval(() => {
-        if (!el.isConnected) { clearInterval(rec._radioSync); return; }
-        if (Radio.playing && !rec.raf) { body.textContent = ""; RadioVisual.attach(body, 4); rec.raf = body; }
-      }, 2000);
+      /* Widget de radio: nombre + espectro del motor del background.
+         Solo redibuja cuando cambia el estado (nada de polling caro). */
+      const draw = () => {
+        if (!el.isConnected) { if (rec.timer) clearInterval(rec.timer); return; }
+        const s = Radio.snap();
+        body.textContent = "";
+        const line = document.createElement("div");
+        line.className = "fsw-sub";
+        line.textContent = s.station
+          ? `${s.playing ? "♪" : s.paused ? "❙❙" : "○"} ${s.station.name}${s.track && s.track !== s.station.name ? " — " + s.track : ""}`
+          : "radio off — 'radio list'";
+        const viz = document.createElement("div");
+        viz.className = "radio-bars";
+        body.appendChild(line); body.appendChild(viz);
+        RadioVisual.attach(viz, { rows: 3 });
+        rec.raf = viz;
+      };
+      rec._sig = null;
+      draw();
+      rec.timer = setInterval(() => {
+        if (!el.isConnected) { clearInterval(rec.timer); return; }
+        const s = Radio.snap();
+        const sig = `${s.playing}|${s.station ? s.station.id : ""}|${s.track}`;
+        if (sig !== rec._sig) { rec._sig = sig; draw(); }
+      }, 1500);
     } else if (T === "notes") {
       const draw = () => {
         if (!el.isConnected) { if (rec.timer) clearInterval(rec.timer); return; }
@@ -3431,7 +3226,10 @@ reg("dash", "Dashboards: guarda y restaura widgets+radio+panel", "dash <save <n>
     if (!name) { Term.printErr("uso: dash save <nombre>"); return; }
     dashes[name] = {
       widgets: JSON.parse(JSON.stringify(FSYS.config.widgets || [])),
-      radio: Radio.playing ? { key: Radio.station, label: Radio.label, vol: Math.round((Radio.audio ? Radio.audio.volume : 0.8) * 100) } : null,
+      radio: (() => {
+        const s = Radio.snap();
+        return s.station ? { station: s.station.name, label: s.track || s.station.name, vol: s.muted ? 0 : s.vol } : null;
+      })(),
       pane: Pane.view || null,
       /* STUDIO: el dash congela el look completo (paleta, fuente, radius, wall) */
       look: { accent: FSYS.config.accent, studio: JSON.parse(JSON.stringify(FSYS.config.studio || {})) },
@@ -3456,17 +3254,21 @@ reg("dash", "Dashboards: guarda y restaura widgets+radio+panel", "dash <save <n>
       saveStore(STORE_KEYS.cfg, FSYS.config);
     }
     if (d.pane) { Pane.show(d.pane); Pane.render(d.pane); }
-    if (d.radio && d.radio.key) {
-      const preset = Radio.PRESETS[d.radio.key];
-      if (preset) Radio.play(d.radio.key, preset.url, d.radio.label).then(() => Radio.setVol(d.radio.vol || 80));
+    /* RADIO 2.0: el dash guarda el NOMBRE de la emisora (no el preset viejo).
+       Si la emisora ya no existe, avisa en vez de fallar en silencio. */
+    if (d.radio && (d.radio.station || d.radio.key)) {
+      Radio.play(d.radio.station || d.radio.key).then((r) => {
+        if (!r || r.error) Term.printErr("radio: " + ((r && r.error) || "no pude sintonizar"));
+        else if (d.radio.vol != null) Radio.setVol(d.radio.vol);
+      });
     }
-    Term.printOut(`dash '${sub}' restaurado — ${(d.widgets || []).length} widgets${d.radio ? " + " + d.radio.label : ""}${d.pane ? " + panel " + d.pane : ""}`, "ok");
+    Term.printOut(`dash '${sub}' restaurado — ${(d.widgets || []).length} widgets${d.radio ? " + " + (d.radio.label || d.radio.station || d.radio.key) : ""}${d.pane ? " + panel " + d.pane : ""}`, "ok");
   } else if (sub === "list") {
     const names = Object.keys(dashes);
     if (!names.length) { Term.printOut("(sin dashes — armá tu escritorio y 'dash save <n>')", "dim"); return; }
     for (const n of names) {
       const d = dashes[n];
-      Term.printOut(`  ${n.padEnd(14)} ${(d.widgets || []).length} widgets${d.radio ? " · ♪ " + d.radio.label : ""}${d.pane ? " · panel " + d.pane : ""}`, "out");
+      Term.printOut(`  ${n.padEnd(14)} ${(d.widgets || []).length} widgets${d.radio ? " · ♪ " + (d.radio.label || d.radio.station || d.radio.key) : ""}${d.pane ? " · panel " + d.pane : ""}`, "out");
     }
   } else if (sub === "rm") {
     if (!dashes[name]) { Term.printErr(`no existe el dash: ${name || "(vacío)"}`); return; }
@@ -3795,7 +3597,9 @@ const SUBCOMMANDS = {
   layout: ["full", "split"],
   watchdog: ["on", "off", "status"],
   pane: ["notes", "vault", "tabs", "help", "top", "off"],
-  radio: ["lofi", "jazz", "techno", "synthwave", "classical", "space", "file", "vol", "bars", "status", "stop"],
+  radio: ["status", "help", "list", "play", "next", "prev", "pause", "resume", "toggle", "stop",
+          "vol", "mute", "seek", "loop", "shuffle", "sleep", "bars", "win", "pin", "unpin",
+          "add", "files", "rm", "rename", "fav", "favs"],
   weather: [], crypto: ["btc", "eth", "sol", "doge"], dict: [], ip: [], news: ["open"],
   widget: ["add", "cfg", "rm", "list", "reset"], dash: ["save", "list", "rm", "export", "import"],
   theme: ["gen", "make", "list", "rm"], wall: ["set", "dim", "blur", "off"],
@@ -4222,6 +4026,9 @@ const StatusBar = {
 document.addEventListener("DOMContentLoaded", async () => {
   Term.init();
   StatusBar.init();
+  /* RADIO 2.0: los comandos se registran primero — así existen aunque
+     un paso posterior del arranque falle. El audio lo pone el background. */
+  try { RadioCommands.register(); } catch (e) { /* sin radio: no rompe el boot */ }
   Wall.apply();                 /* STUDIO: wallpaper persistido */
   STUDIO.applyTokens();         /* STUDIO: fuente/radius/scan/grid */
 
@@ -4261,6 +4068,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   Tabs.bindShortcuts();
   Pane.init();
   Palette.init();
+  /* RADIO 2.0: badge, barra fijada y sincronización con el background.
+     La home no reproduce audio: solo controla el motor. */
+  try { await Radio.init(); } catch (e) { /* sin radio: no rompe el boot */ }
   WidgetLayer.restore();   /* widgets flotantes persistidos (BOOT 14) */
   const animated = Boot.run();
   /* MOTD: bienvenida mínima que guía sin estorbar (spec §22) */

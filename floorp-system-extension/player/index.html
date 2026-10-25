@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#050706">
+<title>FLOORP RADIO</title>
+<link rel="stylesheet" href="player.css">
+</head>
+<body>
+
+<header id="head">
+  <span id="dot" class="off"></span>
+  <div id="head-txt">
+    <b id="st-name">FLOORP RADIO</b>
+    <span id="st-kind">sin sintonizar</span>
+  </div>
+  <span id="win-close" title="Cerrar ventana">[x]</span>
+</header>
+
+<!-- Espectro: barras reales del analizador (o visual, se avisa) -->
+<section id="viz">
+  <div id="bars" aria-hidden="true"></div>
+  <div id="viz-foot"><span id="viz-mode">—</span><span id="time">00:00</span></div>
+</section>
+
+<!-- Emisoras web (Spotify, YouTube...): suena dentro de este marco -->
+<section id="frame" hidden>
+  <!-- Sin sandbox a propósito: los reproductores de Spotify y YouTube
+       necesitan almacenamiento propio y rompen dentro de un marco
+       restringido. El aislamiento real lo da el origen cruzado. -->
+  <iframe id="embed" allow="autoplay; encrypted-media; clipboard-write; fullscreen"></iframe>
+</section>
+
+<section id="now">
+  <div id="track">—</div>
+  <div id="pos">—</div>
+</section>
+
+<section id="transport">
+  <button id="b-prev" title="Anterior">⏮</button>
+  <button id="b-play" class="main" title="Play / Pausa">▶</button>
+  <button id="b-next" title="Siguiente">⏭</button>
+  <button id="b-stop" title="Detener">⏹</button>
+  <button id="b-shuffle" title="Aleatorio">⤨</button>
+  <button id="b-loop" title="Repetir">↻</button>
+  <button id="b-sleep" title="Temporizador">☾</button>
+  <button id="b-fav" title="Favorita">☆</button>
+</section>
+
+<section id="volrow">
+  <span id="vol-ico" title="Silenciar">🔊</span>
+  <input id="vol" type="range" min="0" max="100" step="1" value="80">
+  <span id="vol-num">80</span>
+</section>
+
+<section id="lib">
+  <div id="lib-head">
+    <span>BIBLIOTECA</span>
+    <span id="lib-count"></span>
+  </div>
+  <div id="lib-list"></div>
+  <p id="lib-hint">agregá radios desde la home: <code>radio add miradio &lt;url&gt;</code></p>
+</section>
+
+<footer id="foot">
+  <span id="msg"></span>
+</footer>
+
+<script src="../background/radio.js"></script>
+<script src="player.js"></script>
+</body>
+</html>

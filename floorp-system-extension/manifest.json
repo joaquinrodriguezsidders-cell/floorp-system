@@ -22,6 +22,7 @@
       "background/auto.js",
       "background/vault.js",
       "background/apps.js",
+      "background/radio.js",
       "background/main.js"
     ],
     "persistent": true
