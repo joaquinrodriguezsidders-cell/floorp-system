@@ -1,20 +1,19 @@
 name: Release
 
-# Se dispara SOLO con un tag de version (v0.19.0) o a mano.
-# Nunca con un push normal: así no se publica código experimental.
+# Dos formas de dispararlo, con consecuencias MUY distintas:
+#
+#   * push de un tag v*.*.*   -> publicación real (firma + release + canal)
+#   * ejecución manual        -> SIMULACIÓN: valida y empaqueta, no firma,
+#                                no crea releases y no toca el canal.
+#
+# Nunca se dispara con un push normal: así no se publica código experimental.
 on:
   push:
     tags:
-      # patron glob (no regex): cualquier tag v*.*.*
       - 'v*.*.*'
   workflow_dispatch:
-    inputs:
-      confirm:
-        description: 'Escribi PUBLICAR para confirmar que queres publicar la version actual del manifest'
-        required: true
-        type: string
 
-# Permiso global minimo; cada job pide solo lo que necesita.
+# Permiso global mínimo; cada job pide solo lo que necesita.
 permissions:
   contents: read
 
@@ -39,43 +38,32 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Confirmacion manual (workflow_dispatch)
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          if [ "${{ inputs.confirm }}" != "PUBLICAR" ]; then
-            echo "::error::Cancelado: hay que escribir PUBLICAR en el campo de confirmacion."
-            exit 1
-          fi
-
       - name: Configurar canal de actualizaciones
         env:
           UPDATE_BASE_URL: ${{ vars.UPDATE_BASE_URL }}
         run: |
           if [ -z "$UPDATE_BASE_URL" ]; then
-            echo "::error::Falta la variable de repositorio UPDATE_BASE_URL (Settings > Secrets and variables > Actions > Variables). Ejemplo: https://usuario.github.io/floorp-system"
+            echo "::error::Falta la variable de repositorio UPDATE_BASE_URL."
+            echo "::error::Se carga en Settings > Secrets and variables > Actions > pestaña Variables."
+            echo "::error::Valor de ejemplo: https://TU-USUARIO.github.io/floorp-system"
             exit 1
           fi
           python tools/configure.py --base-url "$UPDATE_BASE_URL"
 
-      - name: Validar proyecto
+      - name: Validar el proyecto
         run: python tools/validate.py --release
 
-      - name: Leer version e id
+      - name: Leer versión e identificador
         id: meta
-        run: |
-          python - <<'EOF' >> "$GITHUB_OUTPUT"
-          import json, os
-          m = json.load(open('floorp-system-extension/manifest.json'))
-          print("version=" + m["version"])
-          print("addon_id=" + m["browser_specific_settings"]["gecko"]["id"])
-          EOF
+        run: python tools/verify_release.py --check-meta-only --github-output "$GITHUB_OUTPUT"
 
-      - name: La version del tag debe coincidir con el manifest
+      - name: El tag debe coincidir con la versión del manifest
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           EXPECTED="v${{ steps.meta.outputs.version }}"
           if [ "$EXPECTED" != "${GITHUB_REF_NAME}" ]; then
-            echo "::error::El tag es ${GITHUB_REF_NAME} pero el manifest declara ${{ steps.meta.outputs.version }}. Corregi la version antes de publicar."
+            echo "::error::El tag es ${GITHUB_REF_NAME} pero el manifest declara v${{ steps.meta.outputs.version }}."
+            echo "::error::Corregí la versión del proyecto o creá el tag con el nombre correcto."
             exit 1
           fi
           echo "tag y manifest coinciden: $EXPECTED"
@@ -83,8 +71,12 @@ jobs:
       - name: Empaquetar XPI
         run: python tools/build_xpi.py
 
-      - name: Guardar XPI sin firmar + informe
-        uses: actions/upload-artifact@v4
+      - name: Comprobar el paquete recién construido
+        run: |
+          python tools/verify_release.py \
+            --xpi dist/floorp-system-unsigned.xpi --allow-unsigned
+
+      - uses: actions/upload-artifact@v4
         with:
           name: unsigned
           path: |
@@ -92,10 +84,26 @@ jobs:
             dist/build-info.json
           retention-days: 7
 
+      - name: Resumen
+        if: always()
+        run: |
+          {
+            echo "## FLOORP SYSTEM — validación"
+            echo ""
+            echo "- versión: \`${{ steps.meta.outputs.version }}\`"
+            echo "- id: \`${{ steps.meta.outputs.addon_id }}\`"
+            echo "- canal: \`${{ vars.UPDATE_BASE_URL }}\`"
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo ""
+              echo "> Ejecución manual: **simulación**. No se firmó ni publicó nada."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
   # ---------------------------------------------------------------- 2
   sign:
     name: Firmar en Mozilla (AMO)
     needs: validate
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -111,13 +119,23 @@ jobs:
           name: unsigned
           path: dist
 
-      - name: Comprobar credenciales
+      - name: Comprobar que existen las credenciales
         env:
           AMO_API_KEY: ${{ secrets.AMO_API_KEY }}
           AMO_API_SECRET: ${{ secrets.AMO_API_SECRET }}
         run: |
-          if [ -z "$AMO_API_KEY" ] || [ -z "$AMO_API_SECRET" ]; then
-            echo "::error::Faltan los secretos AMO_API_KEY / AMO_API_SECRET. Se obtienen en https://addons.mozilla.org/developers/addon/api/key/ y se cargan en Settings > Secrets and variables > Actions > Secrets."
+          MISSING=0
+          if [ -z "$AMO_API_KEY" ]; then
+            echo "::error::Falta el secreto AMO_API_KEY."
+            MISSING=1
+          fi
+          if [ -z "$AMO_API_SECRET" ]; then
+            echo "::error::Falta el secreto AMO_API_SECRET."
+            MISSING=1
+          fi
+          if [ "$MISSING" = "1" ]; then
+            echo "::error::Se obtienen en https://addons.mozilla.org/developers/addon/api/key/"
+            echo "::error::y se cargan en Settings > Secrets and variables > Actions > Secrets."
             exit 1
           fi
 
@@ -127,19 +145,30 @@ jobs:
           AMO_API_SECRET: ${{ secrets.AMO_API_SECRET }}
         run: python tools/sign_amo.py --xpi dist/floorp-system-unsigned.xpi
 
-      - name: Guardar XPI firmado
-        uses: actions/upload-artifact@v4
+      - name: Verificar la firma y el canal del paquete
+        env:
+          UPDATE_BASE_URL: ${{ vars.UPDATE_BASE_URL }}
+        run: |
+          python tools/verify_release.py \
+            --xpi dist/floorp-system-signed.xpi \
+            --base-url "$UPDATE_BASE_URL" \
+            --expect-version "${{ needs.validate.outputs.version }}"
+
+      - uses: actions/upload-artifact@v4
         with:
-          name: signed
+          name: release-package
           path: |
-            dist/floorp-system-signed.xpi
+            dist/floorp-system-*.xpi
             dist/sign-info.json
+            dist/SHA256SUMS.txt
+            dist/VERSION
           retention-days: 7
 
   # ---------------------------------------------------------------- 3
   publish:
-    name: Publicar release
+    name: Publicar el release
     needs: [validate, sign]
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -154,67 +183,52 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: signed
+          name: release-package
           path: dist
-
-      - name: Verificar el XPI firmado antes de publicarlo
-        run: |
-          python - <<'EOF'
-          import hashlib, json, zipfile, sys
-          from pathlib import Path
-          p = Path("dist/floorp-system-signed.xpi")
-          if not p.exists():
-              sys.exit("no existe el XPI firmado")
-          with zipfile.ZipFile(p) as zf:
-              names = zf.namelist()
-              if "META-INF/mozilla.rsa" not in names:
-                  sys.exit("el XPI no tiene firma de Mozilla (META-INF/mozilla.rsa)")
-              m = json.loads(zf.read("manifest.json"))
-          gecko = m["browser_specific_settings"]["gecko"]
-          if "update_url" not in gecko:
-              sys.exit("el XPI firmado no incluye update_url: las actualizaciones no funcionarian")
-          print("version:", m["version"], "| id:", gecko["id"])
-          print("sha256:", hashlib.sha256(p.read_bytes()).hexdigest())
-          Path("dist/floorp-system.xpi").write_bytes(p.read_bytes())
-          Path("dist/SHA256SUMS.txt").write_text(
-              f"{hashlib.sha256(p.read_bytes()).hexdigest()}  floorp-system-{m['version']}.xpi\n")
-          Path("dist/VERSION").write_text(m["version"])
-          EOF
 
       - name: Crear el release con el XPI adjunto
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/floorp-system.xpi
+            dist/floorp-system-${{ needs.validate.outputs.version }}.xpi
             dist/SHA256SUMS.txt
           generate_release_notes: true
           fail_on_unmatched_files: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Confirmar que el archivo publicado es descargable
+      - name: Confirmar que el archivo publicado es realmente descargable
         id: asset
         run: |
-          VERSION=$(cat dist/VERSION)
-          URL="https://github.com/${{ github.repository }}/releases/download/${GITHUB_REF_NAME}/floorp-system.xpi"
+          URL="https://github.com/${{ github.repository }}/releases/download/${GITHUB_REF_NAME}/floorp-system-${{ needs.validate.outputs.version }}.xpi"
           for i in $(seq 1 20); do
             CODE=$(curl -s -o /dev/null -w '%{http_code}' -L -I "$URL" || true)
             if [ "$CODE" = "200" ]; then
               echo "descarga verificada: $URL"
               echo "url=$URL" >> "$GITHUB_OUTPUT"
-              echo "version=$VERSION" >> "$GITHUB_OUTPUT"
               exit 0
             fi
-            echo "todavia no responde ($CODE), reintento $i/20..."
+            echo "el archivo todavía no responde ($CODE). Reintento $i/20..."
             sleep 10
           done
-          echo "::error::El archivo del release no responde; NO se publica el manifiesto de actualizaciones."
+          echo "::error::El archivo del release no responde. NO se publica el canal de actualizaciones."
           exit 1
+
+      - name: Resumen
+        run: |
+          {
+            echo "## FLOORP SYSTEM v${{ needs.validate.outputs.version }} publicado"
+            echo ""
+            echo "- descarga: ${{ steps.asset.outputs.url }}"
+            echo "- sha256:"
+            echo '```'
+            cat dist/SHA256SUMS.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   # ---------------------------------------------------------------- 4
   pages:
-    name: Publicar canal de actualizaciones
-    needs: [publish, validate]
+    name: Publicar el canal de actualizaciones
+    needs: [validate, publish]
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -237,16 +251,16 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: signed
+          name: release-package
           path: dist
 
-      - name: Generar updates.json apuntando al archivo ya publicado
+      - name: Generar el manifiesto apuntando al archivo YA publicado
         run: |
           python tools/publish_update.py \
-            --xpi dist/floorp-system-signed.xpi \
+            --xpi "dist/floorp-system-${{ needs.validate.outputs.version }}.xpi" \
             --download-url "${{ needs.publish.outputs.download_url }}"
 
-      - name: Verificar el manifiesto generado
+      - name: Verificar el manifiesto antes de subirlo
         run: python tools/validate.py --release
 
       - uses: actions/configure-pages@v5
@@ -257,3 +271,14 @@ jobs:
 
       - id: deploy
         uses: actions/deploy-pages@v4
+
+      - name: Resumen
+        run: |
+          {
+            echo "## Canal de actualizaciones publicado"
+            echo ""
+            echo "- endpoint: ${{ vars.UPDATE_BASE_URL }}/updates.json"
+            echo "- versión anunciada: \`${{ needs.validate.outputs.version }}\`"
+            echo ""
+            echo "Las instalaciones que ya tengan el canal recibirán esta versión solas."
+          } >> "$GITHUB_STEP_SUMMARY"

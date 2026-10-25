@@ -26,10 +26,16 @@ release.config.json        configuración del canal de distribución
 Requiere **Python 3** (no hace falta `npm` ni `node`).
 
 ```bash
-python tools/validate.py          # 15 comprobaciones reales del proyecto
-python tools/build_xpi.py         # empaqueta dist/floorp-system-unsigned.xpi
+python tools/validate.py            # 15 comprobaciones reales del proyecto
+python tools/build_xpi.py           # empaqueta dist/floorp-system-unsigned.xpi
 python tools/build_xpi.py --check-only   # solo verifica, no escribe
+python tools/verify_release.py      # integridad del paquete antes de publicar
+python tools/test_pipeline.py       # prueba el flujo completo contra un AMO falso
+python tools/diagnose.py            # ¿esta instalación puede recibir actualizaciones?
 ```
+
+Todas las herramientas usan solo la librería estándar de Python: no hacen falta
+`npm`, `node`, `curl` ni dependencias externas.
 
 Para probar la interfaz sin instalar nada: serví `floorp-system-extension/newtab`
 con `python -m http.server` y abrí `index.html`. La terminal funciona; los
@@ -67,13 +73,25 @@ paquete y vos lo distribuís. Como la extensión ya se reparte fuera de la tiend
 
 ## Publicar una versión
 
-Ver **[docs/RELEASING.md](docs/RELEASING.md)**. Resumen:
+Un solo comando. Valida, sube el número de versión en todos los archivos,
+crea el commit y el tag, y lo sube; GitHub Actions se encarga del resto:
+
+```bash
+python tools/publicar.py patch      # arreglo        0.19.0 -> 0.19.1
+python tools/publicar.py minor      # función nueva  0.19.0 -> 0.20.0
+python tools/publicar.py --dry-run  # ver qué haría, sin tocar nada
+```
+
+Pide confirmación antes de tocar nada y nunca fuerza el historial. Si la
+validación falla, no publica. Guía detallada: **[docs/RELEASING.md](docs/RELEASING.md)**.
+
+La primera vez (o si preferís hacerlo a mano):
 
 ```bash
 python tools/bump_version.py patch
 python tools/validate.py
 git add -A && git commit -m "chore: v0.19.1"
-git tag v0.19.1 && git push origin main --tags
+git tag v0.19.1 && git push origin --tags
 ```
 
 ## Usuarios que ya lo tienen instalado
@@ -91,9 +109,19 @@ no tienen `update_url`, así que requieren **una** reinstalación manual; desde
 | Inyección de `update_url` | funcionando, ejecutado |
 | Generación y validación de `updates.json` | funcionando, ejecutado |
 | Guardas (rechazo de XPI sin firmar, anti-downgrade, tag vs versión) | funcionando, ejecutadas |
-| Firma real en Mozilla | **no ejecutada** (faltan credenciales) |
-| Publicación en GitHub / Pages | **no ejecutada** (el repo remoto no existe todavía) |
+| Autenticación con la API de Mozilla (JWT HS256) | verificada contra un AMO simulado que valida el token |
+| Flujo de publicación completo (`publicar.py`) | probado de punta a punta con un remoto real |
+| Firma real en Mozilla | **no ejecutada** (faltan las credenciales de tu cuenta AMO) |
+| Publicación en GitHub / Pages | **no ejecutada** (el repositorio remoto todavía no existe) |
 | Actualización automática comprobada en Floorp | **no verificada** (requiere las dos anteriores) |
+
+### Estado medido de tu instalación
+
+`python tools/diagnose.py` leyó tu perfil actual de Floorp y encontró que
+**FLOORP SYSTEM no figura como add-on instalado** (no aparece en
+`extensions.json` ni tiene datos en `browser-extension-data`). Es decir: hoy no
+hay una instalación permanente que migrar en este perfil; la primera
+instalación firmada ya incluirá el canal de actualizaciones.
 
 ## Pendientes antes de que haya actualizaciones automáticas
 

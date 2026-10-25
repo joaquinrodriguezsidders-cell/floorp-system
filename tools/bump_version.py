@@ -21,6 +21,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import _console  # noqa: F401  (salida UTF-8 en Windows)
+
 ROOT = Path(__file__).resolve().parent.parent
 MANIFEST = ROOT / "floorp-system-extension" / "manifest.json"
 PKG = ROOT / "package.json"

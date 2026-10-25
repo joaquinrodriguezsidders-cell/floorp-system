@@ -31,6 +31,8 @@ import sys
 import zipfile
 from pathlib import Path
 
+import _console  # noqa: F401  (salida UTF-8 en Windows)
+
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG = ROOT / "release.config.json"
 SITE = ROOT / "site"

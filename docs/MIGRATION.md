@@ -49,6 +49,12 @@ dudas.
 
 ## Cómo comprobar que la migración quedó bien
 
+Primero, automático: `python tools/diagnose.py` lee tu perfil y responde si la
+extensión está instalada como add-on administrado, si la firma es válida, si el
+canal responde y si tenés la última versión.
+
+A mano:
+
 ```
 about:support  →  Extensiones  →  FLOORP SYSTEM
   versión:   0.19.0 (o mayor)
@@ -57,6 +63,12 @@ about:support  →  Extensiones  →  FLOORP SYSTEM
 ```
 
 Después de la próxima publicación, esa versión debería subir sola.
+
+> **Medido en este equipo:** al revisar el perfil actual, FLOORP SYSTEM no
+> figuraba en `extensions.json` (solo existían el diccionario es-AR, el paquete
+> de idioma y otra extensión). Es decir, en este perfil todavía no hay una
+> instalación administrada que migrar: la primera instalación ya puede ser la
+> versión con canal y no hará falta ningún paso extra.
 
 ## Si algo sale mal
 
