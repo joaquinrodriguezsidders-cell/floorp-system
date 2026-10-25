@@ -5,7 +5,8 @@ name: Release
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+      # patron glob (no regex): cualquier tag v*.*.*
+      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       confirm:
